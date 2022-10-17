@@ -23,7 +23,7 @@ namespace KuanLun
         private Button btnJoinRoom;
         private Button btnJoinRandomRoom;
 
-        private CanvasGroup cG;
+        private CanvasGroup groupMain;
         #endregion
 
         #region 房間資料
@@ -45,8 +45,15 @@ namespace KuanLun
             btnLeaveRoom = GameObject.Find("退出房間").GetComponent<Button>();
 
             btnLeaveRoom.onClick.AddListener(LeaveRoom);
+            btnStartGame.onClick.AddListener(() => photonView.RPC("RPCStartGame", RpcTarget.All));
 
             PhotonNetwork.ConnectUsingSettings();
+        }
+
+        [PunRPC]
+        private void RPCStartGame()
+        {
+            PhotonNetwork.LoadLevel("遊戲場景");
         }
 
         private void GetLobbyObjectAndEvent()
@@ -59,9 +66,13 @@ namespace KuanLun
             btnJoinRoom = GameObject.Find("加入指定房間").GetComponent<Button>();
             btnJoinRandomRoom = GameObject.Find("加入隨機房間").GetComponent<Button>();
 
-            cG = GameObject.Find("畫布主要").GetComponent<CanvasGroup>();
+            groupMain = GameObject.Find("畫布主要").GetComponent<CanvasGroup>();
 
-            inputFieldPlayerName.onEndEdit.AddListener((input) => namePlayer = input);
+            inputFieldPlayerName.onEndEdit.AddListener((input) =>
+            {
+                namePlayer = input;
+                PhotonNetwork.NickName = namePlayer;
+            });
             inputFieldNewRoomName.onEndEdit.AddListener((input) => nameNewRoom = input);
             inputFieldExistRoomName.onEndEdit.AddListener((input) => nameExistRoom = input);
 
@@ -75,8 +86,8 @@ namespace KuanLun
             base.OnConnectedToMaster();
 
             print("已連線至主機");
-            cG.interactable = true;
-            cG.blocksRaycasts = true;
+            groupMain.interactable = true;
+            groupMain.blocksRaycasts = true;
         }
 
         private void CreateNewRoom()
