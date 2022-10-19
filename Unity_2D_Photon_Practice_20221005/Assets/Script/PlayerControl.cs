@@ -4,6 +4,7 @@ using UnityEngine;
 using Photon.Pun;
 using TMPro;
 using Cinemachine;
+using UnityEngine.UI;
 
 namespace KuanLun
 {
@@ -22,6 +23,12 @@ namespace KuanLun
         private string parWalk = "跑步開關";
         private bool isGround;
         private Transform childCanvas;
+        private TextMeshProUGUI textApple;
+        private int countApple;
+        private int countAppleMax = 5;
+        private CanvasGroup groupGame;
+        private TextMeshProUGUI textWinner;
+        private Button btnBackToLobby;
 
         private void OnDrawGizmos()
         {
@@ -31,7 +38,14 @@ namespace KuanLun
 
         private void OnTriggerEnter2D(Collider2D collision)
         {
-            if (collision.name.Contains("蘋果")) PhotonNetwork.Destroy(collision.gameObject);
+            if (collision.name.Contains("蘋果"))
+            {
+                Destroy(collision.gameObject);
+
+                textApple.text = (++countApple).ToString();
+
+                if (countApple >= countAppleMax) Win();
+            }
         }
 
         private void Start()
@@ -49,6 +63,20 @@ namespace KuanLun
             if (!photonView.IsMine) enabled = false;
 
             photonView.RPC("RPCUpdateName", RpcTarget.All);
+
+            textApple = transform.Find("畫布玩家名稱/蘋果數量").GetComponent<TextMeshProUGUI>();
+            groupGame = GameObject.Find("畫布遊戲介面").GetComponent<CanvasGroup>();
+            textWinner = GameObject.Find("獲勝者").GetComponent<TextMeshProUGUI>();
+
+            btnBackToLobby = GameObject.Find("返回遊戲大廳").GetComponent<Button>();
+            btnBackToLobby.onClick.AddListener(() =>
+            {
+                if (photonView.IsMine)
+                {
+                    PhotonNetwork.LeaveRoom();
+                    PhotonNetwork.LoadLevel("遊戲大廳");
+                }
+            });
         }
 
         private void Update()
@@ -56,6 +84,7 @@ namespace KuanLun
             Move();
             CheckGround();
             Jump();
+            BackToTop();
         }
 
         [PunRPC]
@@ -86,6 +115,32 @@ namespace KuanLun
             if (isGround && Input.GetKeyDown(KeyCode.Space))
             {
                 rig.AddForce(new Vector2(0, jumpheight));
+            }
+        }
+
+        private void Win()
+        {
+            groupGame.alpha = 1;
+            groupGame.interactable = true;
+            groupGame.blocksRaycasts = true;
+
+            textWinner.text = "獲勝者：" + photonView.Owner.NickName;
+
+            DestroyObject();
+        }
+
+        private void DestroyObject()
+        {
+            GameObject[] apples = GameObject.FindGameObjectsWithTag("蘋果");
+            for (int i = 0; i < apples.Length; i++) Destroy(apples[i]);
+            Destroy(FindObjectOfType<SpawnApple>().gameObject);
+        }
+
+        private void BackToTop()
+        {
+            if (transform.position.y < -25)
+            {
+                transform.position = new Vector3(0, 1, 0);
             }
         }
     }
